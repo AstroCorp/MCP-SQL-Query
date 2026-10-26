@@ -1,0 +1,45 @@
+{
+  "name": "mcp-sql-query",
+  "version": "1.0.0",
+  "description": "MCP server that runs raw SQL on MySQL, MariaDB, and PostgreSQL. A readOnly connection runs only read queries; otherwise any SQL runs.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:docker": "docker compose up --build --abort-on-container-exit --exit-code-from tests",
+    "test:docker:down": "docker compose down --volumes"
+  },
+  "keywords": [
+    "mcp",
+    "sql",
+    "postgres",
+    "mysql",
+    "mariadb",
+    "readonly"
+  ],
+  "author": "AstroCorp",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@mikro-orm/core": "^7.2.5",
+    "@mikro-orm/mariadb": "^7.2.5",
+    "@mikro-orm/mysql": "^7.2.5",
+    "@mikro-orm/postgresql": "^7.2.5",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "kysely": "0.29.7",
+    "node-sql-parser": "^5.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "tsc-alias": "^1.9.8",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
