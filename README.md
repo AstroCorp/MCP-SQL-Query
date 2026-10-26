@@ -48,7 +48,8 @@ Copy `connections.example.json` to `connections.json` in the project root. The s
 
 `serverType` is `mysql`, `mariadb`, or `postgres`. `ip` is an IPv4 address, an IPv6 address, or a hostname.
 
-> **Warning.** `readOnly` is enforced by this server. To be certain a connection can only read, limit that database user to read privileges (`SELECT`, and anything else it needs that does not write). A user that can write can still write if `readOnly` is off or mis-set.
+> [!CAUTION]
+> `readOnly` is enforced by this server. To be certain a connection can only read, limit that database user to read privileges (`SELECT`, and anything else it needs that does not write). A user that can write can still write if `readOnly` is off or mis-set.
 
 Cursor (or another MCP client) starts the compiled server:
 
@@ -132,7 +133,8 @@ Copia `connections.example.json` a `connections.json` en la raíz del proyecto. 
 
 `serverType` es `mysql`, `mariadb` o `postgres`. `ip` es una IPv4, una IPv6 o un hostname.
 
-> **Aviso.** `readOnly` lo aplica este servidor. Para estar seguro de que una conexión solo lee, limita ese usuario de la base a permisos de lectura (`SELECT` y lo que necesite que no escriba). Un usuario que pueda escribir seguirá pudiendo escribir si `readOnly` está desactivado o mal puesto.
+> [!CAUTION]
+> `readOnly` lo aplica este servidor. Para estar seguro de que una conexión solo lee, limita ese usuario de la base a permisos de lectura (`SELECT` y lo que necesite que no escriba). Un usuario que pueda escribir seguirá pudiendo escribir si `readOnly` está desactivado o mal puesto.
 
 Cursor (u otro cliente MCP) arranca el servidor compilado:
 

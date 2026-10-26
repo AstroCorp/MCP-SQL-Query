@@ -1,0 +1,32 @@
+{
+	"maxTimeoutMs": 15000,
+	"connections": [
+		{
+			"serverType": "mysql",
+			"ip": "mysql",
+			"port": 3306,
+			"user": "readonly",
+			"password": "password",
+			"databases": ["app", "analytics"],
+			"readOnly": true
+		},
+		{
+			"serverType": "mariadb",
+			"ip": "mariadb",
+			"port": 3306,
+			"user": "app",
+			"password": "password",
+			"databases": ["app"],
+			"readOnly": false
+		},
+		{
+			"serverType": "postgres",
+			"ip": "postgres",
+			"port": 5432,
+			"user": "readonly",
+			"password": "password",
+			"databases": ["app"],
+			"readOnly": true
+		}
+	]
+}
