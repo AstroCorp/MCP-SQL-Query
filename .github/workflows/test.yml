@@ -14,24 +14,75 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [24.22.1]
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: app
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -ppassword --silent"
+          --health-start-period 40s
+
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_ROOT_HOST: '%'
+          MARIADB_DATABASE: app
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-start-period 40s
+
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app"
+          --health-start-period 40s
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Load schemas
+      run: |
+        mysql --protocol=TCP -h 127.0.0.1 -P 3306 -uroot -ppassword < docker/db/mysql.sql
+        mysql --protocol=TCP -h 127.0.0.1 -P 3307 -uroot -ppassword < docker/db/mysql.sql
+        PGPASSWORD=password psql -h 127.0.0.1 -p 5432 -U postgres -d app -v ON_ERROR_STOP=1 -f docker/db/postgres.sql
+
+    - name: Write connections.json
+      run: |
+        jq '
+          .connections |= map(
+            if .serverType == "mysql" then .ip = "127.0.0.1" | .port = 3306
+            elif .serverType == "mariadb" then .ip = "127.0.0.1" | .port = 3307
+            elif .serverType == "postgres" then .ip = "127.0.0.1" | .port = 5432
+            else .
+            end
+          )
+        ' docker/connections.json > connections.json
+
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 10
+        version: 10.11.1
 
-    - name: Setup Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
+        node-version: 24.22.1
+        cache: pnpm
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
