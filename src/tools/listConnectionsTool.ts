@@ -8,8 +8,7 @@ export const registerListConnectionsTool = (server: McpServer, config: AppConfig
 		'list_connections',
 		{
 			title: 'List connections',
-			description:
-				'List configured connections. Each entry includes the server type, the databases, and whether the connection is read-only or read-write. Hosts, ports, users, and passwords are not included.',
+			description: 'List configured connections. Each entry includes the server type, the databases, and whether the connection is read-only or read-write. Hosts, ports, users, and passwords are not included. Do not read connections.json; that file holds credentials and this tool replaces it.',
 			annotations: {
 				readOnlyHint: true,
 			},

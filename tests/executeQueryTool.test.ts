@@ -20,7 +20,7 @@ afterEach(async () => {
 });
 
 const connect = async (config: AppConfig): Promise<Client> => {
-	const server = new McpServer({ name: 'test', version: '1.0.0' }, { capabilities: { tools: {} } });
+	const server = new McpServer({ name: 'test', version: '1.0.0' });
 	registerListConnectionsTool(server, config);
 	registerExecuteQueryTool(server, config);
 
