@@ -73,6 +73,8 @@ Cursor (or another MCP client) starts the compiled server:
 
 The result is a JSON text block. A rejected query comes back as an MCP tool error.
 
+The server instructions tell the client not to open `connections.json`. That file holds hosts, users, and passwords. `list_connections` is how to see the engine, the databases, and the access level before `execute_query`.
+
 ### Development
 
 | Command | Description |
@@ -87,13 +89,15 @@ The result is a JSON text block. A rejected query comes back as an MCP tool erro
 
 `docker-compose.yml` creates the database `app` on all three engines, plus `analytics` from the shared MySQL/MariaDB script. Both have an `accounts` table (`ada`, `grace`). Users are `readonly` (`SELECT`) and `app` (writes), password `password`. Host ports are `53306`, `53307`, and `55432`. `docker/Dockerfile` builds the container that runs the tests, using `docker/connections.json`.
 
+GitHub Actions runs the same suite on `ubuntu-latest`. MySQL 8.4, MariaDB 11.4, and PostgreSQL 17 start as service containers. The job loads `docker/db`, writes `connections.json` from `docker/connections.json` using `127.0.0.1`, and runs `pnpm test`.
+
 ---
 
 ## Español
 
 ### Descripción
 
-MCP SQL Query es un servidor [Model Context Protocol](https://modelcontextprotocol.io) que ejecuta SQL en MySQL, MariaDB y PostgreSQL. Una conexión `readOnly` solo ejecuta lecturas; si no, ejecuta cualquier SQL.
+MCP SQL Query es un servidor [Model Context Protocol](https://modelcontextprotocol.io) que ejecuta SQL tal cual en MySQL, MariaDB y PostgreSQL. Una conexión `readOnly` solo ejecuta lecturas; si no, ejecuta cualquier SQL.
 
 ### Requisitos
 
@@ -158,6 +162,8 @@ Cursor (u otro cliente MCP) arranca el servidor compilado:
 
 El resultado es un bloque de texto JSON. Una consulta rechazada vuelve como error de la herramienta.
 
+Las instrucciones del servidor piden al cliente que no abra `connections.json`. Ese archivo tiene hosts, usuarios y contraseñas. `list_connections` es la forma de ver el motor, las bases y el nivel de acceso antes de `execute_query`.
+
 ### Desarrollo
 
 | Comando | Descripción |
@@ -171,3 +177,5 @@ El resultado es un bloque de texto JSON. Una consulta rechazada vuelve como erro
 | `pnpm test:docker:down` | Para los contenedores y borra sus volúmenes |
 
 `docker-compose.yml` crea la base `app` en los tres motores, y `analytics` con el script compartido de MySQL y MariaDB. Las dos tienen la tabla `accounts` (`ada`, `grace`). Los usuarios son `readonly` (`SELECT`) y `app` (escritura), contraseña `password`. Los puertos del host son `53306`, `53307` y `55432`. `docker/Dockerfile` construye el contenedor que ejecuta los tests con `docker/connections.json`.
+
+GitHub Actions lanza la misma suite en `ubuntu-latest`. MySQL 8.4, MariaDB 11.4 y PostgreSQL 17 arrancan como servicios. El job carga `docker/db`, escribe `connections.json` a partir de `docker/connections.json` con `127.0.0.1` y ejecuta `pnpm test`.
