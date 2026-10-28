@@ -14,7 +14,7 @@ export class SqlClassificationError extends Error {
 	}
 }
 
-/** La consulta no se ejecuta: conexión ambigua o bloqueada por readOnly. */
+/** La consulta no se ejecuta: conexión ambigua, bloqueada por readOnly o por excludedColumns. */
 export class QueryExecutionError extends Error {
 	constructor(message: string) {
 		super(message);

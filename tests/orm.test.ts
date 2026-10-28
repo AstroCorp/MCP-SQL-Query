@@ -27,6 +27,7 @@ const namesFrom = (result: unknown): unknown[] => {
 describe('executeQuery before opening a connection', () => {
 	const config: AppConfig = {
 		maxTimeoutMs: 15000,
+		excludedColumns: [],
 		connections: [
 			{
 				serverType: 'mysql',
@@ -84,6 +85,49 @@ describe('executeQuery before opening a connection', () => {
 		};
 
 		await expect(executeQuery(readOnly, 'NOT SQL', 'mysql', 'app')).rejects.toThrow(/SQL could not be parsed/);
+	});
+
+	it('rejects an excluded column and SELECT * before opening the database', async () => {
+		const writable: AppConfig = {
+			...config,
+			excludedColumns: ['email', 'password'],
+			connections: config.connections.filter((connection) => !connection.readOnly),
+		};
+
+		await expect(executeQuery(writable, 'SELECT email, password FROM accounts', 'mysql', 'app')).rejects.toThrow(
+			'The query tries to read excluded columns "email" and "password".',
+		);
+		await expect(executeQuery(writable, 'SELECT * FROM accounts', 'mysql', 'app')).rejects.toThrow(
+			'The query tries to read excluded columns with SELECT *.',
+		);
+		await expect(executeQuery(writable, 'NOT SQL', 'mysql', 'app')).rejects.toThrow(/SQL could not be parsed/);
+	});
+
+	it('reports an excluded column before the read-only error', async () => {
+		const readOnly: AppConfig = {
+			...config,
+			excludedColumns: ['email'],
+			connections: config.connections.filter((connection) => connection.readOnly),
+		};
+
+		await expect(executeQuery(readOnly, "DELETE FROM accounts WHERE email = 'a'", 'mysql', 'app')).rejects.toThrow(
+			'The query tries to read excluded column "email".',
+		);
+	});
+
+	it('still rejects a write that does not read an excluded column', async () => {
+		const readOnly: AppConfig = {
+			...config,
+			excludedColumns: ['email', 'password'],
+			connections: config.connections.filter((connection) => connection.readOnly),
+		};
+
+		await expect(executeQuery(readOnly, 'DELETE FROM accounts WHERE id = 1', 'mysql', 'app')).rejects.toThrow(
+			'This connection is read-only. Only SELECT, DESCRIBE, and EXPLAIN of a read statement are allowed.',
+		);
+		await expect(executeQuery(readOnly, 'SELECT id FROM accounts; DELETE FROM accounts', 'mysql', 'app')).rejects.toThrow(
+			/read-only/,
+		);
 	});
 });
 
