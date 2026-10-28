@@ -49,7 +49,7 @@ const textOf = (result: unknown): string => {
 
 describe('execute_query tool', () => {
 	it('registers the connection list and the query tool', async () => {
-		const client = await connect({ maxTimeoutMs: 15000, connections: [] });
+		const client = await connect({ maxTimeoutMs: 15000, excludedColumns: [], connections: [] });
 		const listed = await client.listTools();
 
 		expect(listed.tools.map((tool) => tool.name)).toEqual(['list_connections', 'execute_query']);
@@ -59,6 +59,7 @@ describe('execute_query tool', () => {
 	it('lists server type, databases, and access without secrets', async () => {
 		const client = await connect({
 			maxTimeoutMs: 15000,
+			excludedColumns: ['password', 'email'],
 			connections: [
 				{
 					serverType: 'mysql',
@@ -84,17 +85,20 @@ describe('execute_query tool', () => {
 		const text = textOf(result);
 
 		expect(result.isError).toBeUndefined();
-		expect(JSON.parse(text)).toEqual([
-			{ serverType: 'mysql', databases: ['app', 'analytics'], access: 'read-only' },
-			{ serverType: 'mariadb', databases: ['app'], access: 'read-write' },
-		]);
+		expect(JSON.parse(text)).toEqual({
+			excludedColumns: ['password', 'email'],
+			connections: [
+				{ serverType: 'mysql', databases: ['app', 'analytics'], access: 'read-only' },
+				{ serverType: 'mariadb', databases: ['app'], access: 'read-write' },
+			],
+		});
 		expect(text).not.toContain('10.0.0.8');
 		expect(text).not.toContain('secret');
 		expect(text).not.toContain('readonly');
 	});
 
 	it('returns the query error as an MCP error result', async () => {
-		const client = await connect({ maxTimeoutMs: 15000, connections: [] });
+		const client = await connect({ maxTimeoutMs: 15000, excludedColumns: [], connections: [] });
 		const result = await client.callTool({
 			name: 'execute_query',
 			arguments: { sql: 'SELECT 1', serverType: 'mysql', database: 'app' },
@@ -104,8 +108,41 @@ describe('execute_query tool', () => {
 		expect(textOf(result)).toContain('No mysql connection includes database "app"');
 	});
 
+	it('reports an excluded column before the read-only error', async () => {
+		const client = await connect({
+			maxTimeoutMs: 15000,
+			excludedColumns: ['email'],
+			connections: [
+				{
+					serverType: 'mysql',
+					ip: '127.0.0.1',
+					port: 3306,
+					user: 'readonly',
+					password: 'secret',
+					databases: ['app'],
+					readOnly: true,
+				},
+			],
+		});
+		const excluded = await client.callTool({
+			name: 'execute_query',
+			arguments: { sql: "DELETE FROM accounts WHERE email = 'a'", serverType: 'mysql', database: 'app' },
+		});
+		const write = await client.callTool({
+			name: 'execute_query',
+			arguments: { sql: 'DELETE FROM accounts WHERE id = 1', serverType: 'mysql', database: 'app' },
+		});
+
+		expect(excluded.isError).toBe(true);
+		expect(textOf(excluded)).toContain('The query tries to read excluded column "email".');
+		expect(textOf(excluded)).not.toContain('read-only');
+		expect(write.isError).toBe(true);
+		expect(textOf(write)).toContain('This connection is read-only.');
+		expect(textOf(write)).not.toContain('excluded column');
+	});
+
 	it('rejects an empty query before execution', async () => {
-		const client = await connect({ maxTimeoutMs: 15000, connections: [] });
+		const client = await connect({ maxTimeoutMs: 15000, excludedColumns: [], connections: [] });
 		const result = await client.callTool({
 			name: 'execute_query',
 			arguments: { sql: '   ', serverType: 'mysql', database: 'app' },

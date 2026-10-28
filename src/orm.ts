@@ -68,12 +68,13 @@ export const executeQuery = async (
 
 	const connection = matches[0];
 
-	// readOnly false ejecuta cualquier SQL. readOnly true solo deja pasar una lectura.
-	if (connection.readOnly) {
+	// Sin columnas excluidas y con escritura permitida no hace falta parsear.
+	if (connection.readOnly || config.excludedColumns.length > 0) {
 		try {
-			const access = classifyQuery(sql, serverType);
+			const access = classifyQuery(sql, serverType, config.excludedColumns);
 
-			if (access !== 'read') {
+			// readOnly false ejecuta cualquier SQL que no consulte una columna excluida.
+			if (connection.readOnly && access !== 'read') {
 				throw new QueryExecutionError(
 					'This connection is read-only. Only SELECT, DESCRIBE, and EXPLAIN of a read statement are allowed.',
 				);

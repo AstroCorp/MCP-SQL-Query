@@ -20,14 +20,22 @@ const validConfig = {
 
 describe('parseConfig', () => {
 	it('accepts a valid configuration', () => {
-		expect(parseConfig(validConfig)).toEqual(validConfig);
+		expect(parseConfig(validConfig)).toEqual({ ...validConfig, excludedColumns: [] });
 	});
 
 	it('accepts an empty connection list', () => {
 		expect(parseConfig({ maxTimeoutMs: 1, connections: [] })).toEqual({
 			maxTimeoutMs: 1,
+			excludedColumns: [],
 			connections: [],
 		});
+	});
+
+	it('accepts excluded columns and trims them', () => {
+		expect(parseConfig({ ...validConfig, excludedColumns: [' password ', 'Email'] }).excludedColumns).toEqual([
+			'password',
+			'Email',
+		]);
 	});
 
 	it('trims ip, user, and database names', () => {
@@ -82,6 +90,9 @@ describe('parseConfig', () => {
 		[{ ...validConfig, connections: [{ ...validConnection, databases: ['app', 'app'] }] }, 'repeated'],
 		[{ ...validConfig, connections: [{ ...validConnection, databases: ['bad-name'] }] }, 'Database name'],
 		[{ ...validConfig, connections: [{ ...validConnection, readOnly: 'yes' }] }, 'readOnly'],
+		[{ ...validConfig, excludedColumns: ['password', 'Password'] }, 'twice'],
+		[{ ...validConfig, excludedColumns: ['password-hash'] }, 'Column name'],
+		[{ ...validConfig, excludedColumns: [''] }, 'Column name'],
 	])('rejects %j', (input, fragment) => {
 		expect(() => parseConfig(input)).toThrow(ConfigValidationError);
 		expect(() => parseConfig(input)).toThrow(new RegExp(fragment, 'i'));

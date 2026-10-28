@@ -8,7 +8,7 @@ export const registerListConnectionsTool = (server: McpServer, config: AppConfig
 		'list_connections',
 		{
 			title: 'List connections',
-			description: 'List configured connections. Each entry includes the server type, the databases, and whether the connection is read-only or read-write. Hosts, ports, users, and passwords are not included. Do not read connections.json; that file holds credentials and this tool replaces it.',
+			description: 'List configured connections and the columns that must not be read. excludedColumns applies to every connection. Each connection includes the server type, the databases, and whether it is read-only or read-write. Hosts, ports, users, and passwords are not included. Do not read connections.json; that file holds credentials and this tool replaces it.',
 			annotations: {
 				readOnlyHint: true,
 			},
@@ -21,7 +21,12 @@ export const registerListConnectionsTool = (server: McpServer, config: AppConfig
 			}));
 
 			return {
-				content: [{ type: 'text', text: JSON.stringify(connections) }],
+				content: [
+					{
+						type: 'text',
+						text: JSON.stringify({ excludedColumns: config.excludedColumns, connections }),
+					},
+				],
 			};
 		},
 	);

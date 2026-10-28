@@ -162,3 +162,123 @@ describe('concatenated statements', () => {
 		expect(() => classifyQuery('NOT SQL; SELECT 1', serverType)).toThrow(SqlClassificationError);
 	});
 });
+
+describe('classifyQuery excluded columns', () => {
+	const excluded = ['password', 'email'];
+
+	const rejected = (serverType: SqlServerType, sql: string, message: string): void => {
+		expect(() => classifyQuery(sql, serverType, excluded)).toThrow(SqlClassificationError);
+		expect(() => classifyQuery(sql, serverType, excluded)).toThrow(message);
+	};
+
+	it('does not parse when nothing is excluded', () => {
+		expect(() => classifyQuery('NOT SQL', 'mysql')).toThrow(SqlClassificationError);
+		expect(() => classifyQuery('NOT SQL', 'mysql', [])).toThrow(/SQL could not be parsed/);
+	});
+
+	it.each(SQL_SERVER_TYPES)('names one excluded column or several on %s', (serverType) => {
+		rejected(serverType, 'SELECT email FROM users', 'The query tries to read excluded column "email".');
+		rejected(serverType, 'SELECT users.password FROM users', 'The query tries to read excluded column "password".');
+		rejected(serverType, 'SELECT lower(Email) FROM users', 'The query tries to read excluded column "email".');
+		rejected(
+			serverType,
+			'SELECT email, password FROM users',
+			'The query tries to read excluded columns "email" and "password".',
+		);
+		rejected(
+			serverType,
+			"SELECT id FROM users WHERE email = 'a'",
+			'The query tries to read excluded column "email".',
+		);
+	});
+
+	it.each(SQL_SERVER_TYPES)('allows a query that does not mention an excluded column on %s', (serverType) => {
+		expect(classifyQuery('SELECT COUNT(*) FROM users', serverType, excluded)).toBe('read');
+		expect(classifyQuery("INSERT INTO users (email) VALUES ('a@b.c')", serverType, excluded)).toBe('write');
+	});
+
+	it.each(SQL_SERVER_TYPES)('rejects SELECT * while columns are excluded on %s', (serverType) => {
+		rejected(serverType, 'SELECT * FROM users', 'The query tries to read excluded columns with SELECT *.');
+		rejected(serverType, 'SELECT users.* FROM users', 'The query tries to read excluded columns with SELECT *.');
+	});
+
+	it.each(SQL_SERVER_TYPES)('finds an excluded column behind an alias on %s', (serverType) => {
+		rejected(
+			serverType,
+			'SELECT id FROM (SELECT password AS id FROM users) s',
+			'The query tries to read excluded column "password".',
+		);
+		rejected(
+			serverType,
+			'WITH cte AS (SELECT password AS secret FROM users) SELECT secret FROM cte',
+			'The query tries to read excluded column "password".',
+		);
+		rejected(
+			serverType,
+			'WITH cte AS (SELECT password FROM users) SELECT 1',
+			'The query tries to read excluded column "password".',
+		);
+	});
+
+	it.each(SQL_SERVER_TYPES)('finds an excluded column in a union on %s', (serverType) => {
+		rejected(
+			serverType,
+			'SELECT id FROM users UNION SELECT email FROM users',
+			'The query tries to read excluded column "email".',
+		);
+	});
+
+	it.each(['postgres', 'mariadb'] as const)('finds an excluded column in RETURNING on %s', (serverType) => {
+		rejected(
+			serverType,
+			'INSERT INTO users (id) VALUES (1) RETURNING email',
+			'The query tries to read excluded column "email".',
+		);
+	});
+
+	it.each(SQL_SERVER_TYPES)('names three excluded columns and uses the configured spelling on %s', (serverType) => {
+		expect(() => classifyQuery('SELECT email, password, token FROM users', serverType, ['email', 'password', 'token'])).toThrow(
+			'The query tries to read excluded columns "email", "password", and "token".',
+		);
+		expect(() => classifyQuery('SELECT email FROM users', serverType, ['Email'])).toThrow(
+			'The query tries to read excluded column "Email".',
+		);
+		expect(() => classifyQuery('SELECT email, email FROM users', serverType, excluded)).toThrow(
+			'The query tries to read excluded column "email".',
+		);
+	});
+
+	it.each(SQL_SERVER_TYPES)('names an excluded column and SELECT * together on %s', (serverType) => {
+		rejected(
+			serverType,
+			'SELECT *, email FROM users',
+			'The query tries to read excluded column "email". The query tries to read excluded columns with SELECT *.',
+		);
+	});
+
+	it.each(SQL_SERVER_TYPES)('finds an excluded column in ORDER BY and still classifies a clean query on %s', (serverType) => {
+		rejected(serverType, 'SELECT id FROM users ORDER BY email', 'The query tries to read excluded column "email".');
+		expect(classifyQuery('SELECT id FROM users ORDER BY id', serverType, excluded)).toBe('read');
+		expect(classifyQuery('EXPLAIN SELECT id FROM users', serverType, excluded)).toBe('read');
+	});
+
+	it.each(SQL_SERVER_TYPES)('reports the excluded column of a write instead of classifying it on %s', (serverType) => {
+		rejected(
+			serverType,
+			"DELETE FROM users WHERE email = 'a'",
+			'The query tries to read excluded column "email".',
+		);
+		rejected(
+			serverType,
+			"UPDATE users SET name = email WHERE id = 1",
+			'The query tries to read excluded column "email".',
+		);
+		expect(classifyQuery('DELETE FROM users WHERE id = 1', serverType, excluded)).toBe('write');
+		expect(classifyQuery("UPDATE users SET password = 'secret' WHERE id = 1", serverType, excluded)).toBe('write');
+	});
+
+	it.each(SQL_SERVER_TYPES)('finds an excluded column in a later statement of a batch on %s', (serverType) => {
+		rejected(serverType, 'SELECT id FROM users; SELECT email FROM users', 'The query tries to read excluded column "email".');
+		expect(classifyQuery('SELECT id FROM users; DELETE FROM users WHERE id = 1', serverType, excluded)).toBe('write');
+	});
+});

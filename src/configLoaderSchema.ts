@@ -53,11 +53,24 @@ const connectionSchema = z
 			.describe('true allows only SELECT, DESCRIBE, and EXPLAIN. false allows any query.'),
 	});
 
-/** Configuración del servidor: timeout global y conexiones. */
+const columnNameSchema = z
+	.string()
+	.trim()
+	.min(1, 'Column name cannot be empty')
+	.max(63, 'Column name allows at most 63 characters')
+	.regex(/^[A-Za-z_][A-Za-z0-9_]*$/, 'Column name can only contain letters, numbers, and _');
+
+/** Configuración del servidor: timeout global, columnas excluidas y conexiones. */
 const configSchema = z.strictObject({
 	maxTimeoutMs: z
 		.int('maxTimeoutMs must be an integer in milliseconds')
 		.positive('maxTimeoutMs must be greater than 0'),
+	excludedColumns: z
+		.array(columnNameSchema)
+		.default([])
+		.refine((columns) => new Set(columns.map((column) => column.toLowerCase())).size === columns.length, {
+			error: 'excludedColumns cannot contain the same column twice',
+		}),
 	connections: z.array(connectionSchema),
 });
 

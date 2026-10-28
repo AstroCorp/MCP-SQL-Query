@@ -1,5 +1,6 @@
 {
   "maxTimeoutMs": 15000,
+  "excludedColumns": ["password", "email"],
   "connections": [
     {
       "serverType": "mysql",

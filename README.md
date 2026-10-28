@@ -32,6 +32,7 @@ Copy `connections.example.json` to `connections.json` in the project root. The s
 ```json
 {
   "maxTimeoutMs": 15000,
+  "excludedColumns": ["password", "email"],
   "connections": [
     {
       "serverType": "mysql",
@@ -47,6 +48,8 @@ Copy `connections.example.json` to `connections.json` in the project root. The s
 ```
 
 `serverType` is `mysql`, `mariadb`, or `postgres`. `ip` is an IPv4 address, an IPv6 address, or a hostname.
+
+`excludedColumns` names columns the query must not read, such as `password` or `email`. The same check that classifies a query as read or write rejects the statement if it refers to one of them, in the select list, a `WHERE` clause, or anywhere else. The error names the column, or the columns. `SELECT *` and `table.*` are rejected too. `COUNT(*)` does not count as reading those columns. Omit the field, or use `[]`, to allow every column.
 
 > [!CAUTION]
 > `readOnly` is enforced by this server. To be certain a connection can only read, limit that database user to read privileges (`SELECT`, and anything else it needs that does not write). A user that can write can still write if `readOnly` is off or mis-set.
@@ -68,12 +71,12 @@ Cursor (or another MCP client) starts the compiled server:
 
 | Tool | Arguments | Purpose |
 |------|-----------|---------|
-| `list_connections` | — | Server type, databases, and whether each connection is read-only or read-write. No hosts, users, or passwords |
-| `execute_query` | `sql`, `serverType`, `database` | Run raw SQL. `readOnly` on the matching connection decides whether a write is allowed |
+| `list_connections` | — | `excludedColumns`, then each connection's server type, databases, and whether it is read-only or read-write. No hosts, users, or passwords |
+| `execute_query` | `sql`, `serverType`, `database` | Run raw SQL. `readOnly` decides whether a write is allowed. A reference to `excludedColumns` is rejected |
 
 The result is a JSON text block. A rejected query comes back as an MCP tool error.
 
-The server instructions tell the client not to open `connections.json`. That file holds hosts, users, and passwords. `list_connections` is how to see the engine, the databases, and the access level before `execute_query`.
+The server instructions tell the client not to open `connections.json`. That file holds hosts, users, and passwords. `list_connections` is how to see the engine, the databases, the access level, and `excludedColumns` before `execute_query`.
 
 ### Development
 
@@ -121,6 +124,7 @@ Copia `connections.example.json` a `connections.json` en la raíz del proyecto. 
 ```json
 {
   "maxTimeoutMs": 15000,
+  "excludedColumns": ["password", "email"],
   "connections": [
     {
       "serverType": "mysql",
@@ -136,6 +140,8 @@ Copia `connections.example.json` a `connections.json` en la raíz del proyecto. 
 ```
 
 `serverType` es `mysql`, `mariadb` o `postgres`. `ip` es una IPv4, una IPv6 o un hostname.
+
+`excludedColumns` nombra columnas que la consulta no debe leer, como `password` o `email`. La misma validación que distingue lectura y escritura rechaza la sentencia si se refiere a una de ellas, en el `SELECT`, en un `WHERE` o en cualquier otro sitio. El error nombra la columna, o las columnas. `SELECT *` y `tabla.*` también se rechazan. `COUNT(*)` no cuenta como leer esas columnas. Omitir el campo, o poner `[]`, permite todas.
 
 > [!CAUTION]
 > `readOnly` lo aplica este servidor. Para estar seguro de que una conexión solo lee, limita ese usuario de la base a permisos de lectura (`SELECT` y lo que necesite que no escriba). Un usuario que pueda escribir seguirá pudiendo escribir si `readOnly` está desactivado o mal puesto.
@@ -157,12 +163,12 @@ Cursor (u otro cliente MCP) arranca el servidor compilado:
 
 | Herramienta | Argumentos | Uso |
 |-------------|------------|-----|
-| `list_connections` | — | Motor, bases y si cada conexión es de solo lectura o de lectura y escritura. Sin hosts, usuarios ni contraseñas |
-| `execute_query` | `sql`, `serverType`, `database` | Ejecuta SQL. `readOnly` de la conexión que coincide decide si se admite una escritura |
+| `list_connections` | — | `excludedColumns`, y de cada conexión el motor, las bases y si es de solo lectura o de lectura y escritura. Sin hosts, usuarios ni contraseñas |
+| `execute_query` | `sql`, `serverType`, `database` | Ejecuta SQL. `readOnly` decide si se admite una escritura. Referirse a `excludedColumns` se rechaza |
 
 El resultado es un bloque de texto JSON. Una consulta rechazada vuelve como error de la herramienta.
 
-Las instrucciones del servidor piden al cliente que no abra `connections.json`. Ese archivo tiene hosts, usuarios y contraseñas. `list_connections` es la forma de ver el motor, las bases y el nivel de acceso antes de `execute_query`.
+Las instrucciones del servidor piden al cliente que no abra `connections.json`. Ese archivo tiene hosts, usuarios y contraseñas. `list_connections` es la forma de ver el motor, las bases, el nivel de acceso y `excludedColumns` antes de `execute_query`.
 
 ### Desarrollo
 

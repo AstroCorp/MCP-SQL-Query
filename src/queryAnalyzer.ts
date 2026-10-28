@@ -1,4 +1,4 @@
-import { createRequire } from 'node:module';
+﻿import { createRequire } from 'node:module';
 import type { Parser as SqlParser } from 'node-sql-parser';
 
 import { SqlClassificationError } from './errors';
@@ -27,6 +27,9 @@ interface AstNode {
 	expr?: unknown;
 	stmt?: unknown;
 	ast?: unknown;
+	from?: unknown;
+	columns?: unknown;
+	returning?: unknown;
 	_next?: unknown;
 }
 
@@ -320,8 +323,12 @@ const parseStatements = (sql: string, database: string): AstNode[] => {
 	}
 };
 
-/** read solo si cada sentencia del lote es de lectura. */
-export const classifyQuery = (sql: string, serverType: SqlServerType): SqlAccess => {
+/** read solo si cada sentencia del lote es de lectura. excludedColumns se mira en el mismo parseo. */
+export const classifyQuery = (
+	sql: string,
+	serverType: SqlServerType,
+	excludedColumns: readonly string[] = [],
+): SqlAccess => {
 	const nodes = parseStatements(sql.trim(), PARSER_DATABASE[serverType]);
 
 	// Vacío no es escritura ni lectura: no hay nada que ejecutar.
@@ -329,6 +336,107 @@ export const classifyQuery = (sql: string, serverType: SqlServerType): SqlAccess
 		throw new SqlClassificationError('SQL query is empty');
 	}
 
+	if (excludedColumns.length > 0) {
+		const found = referencedExcludedColumns(nodes, excludedColumns);
+
+		if (found.names.length > 0 || found.star) {
+			throw new SqlClassificationError(excludedColumnsMessage(found.names, found.star));
+		}
+	}
+
 	// Una sola escritura bloquea el lote. En readOnly no se abre la base.
 	return nodes.every(isReadStatement) ? 'read' : 'write';
+};
+
+/** Nombre de columna tal como lo deja el parser. '*' es SELECT *, no el asterisco de COUNT(*). */
+const columnName = (column: unknown): string | null => {
+	if (typeof column === 'string' && column.length > 0) {
+		return column;
+	}
+
+	if (column === '*') {
+		return '*';
+	}
+
+	if (isRecord(column) && isRecord(column.expr) && typeof column.expr.value === 'string' && column.expr.value.length > 0) {
+		return column.expr.value;
+	}
+
+	return null;
+};
+
+/** Nombres de excludedColumns citados en el árbol, en el orden en que aparecen. */
+const referencedExcludedColumns = (
+	nodes: AstNode[],
+	excludedColumns: readonly string[],
+): { names: string[]; star: boolean } => {
+	const excluded = new Map(excludedColumns.map((column) => [column.toLowerCase(), column]));
+	const names: string[] = [];
+	const seen = new Set<string>();
+	let star = false;
+
+	const visit = (value: unknown): void => {
+		if (Array.isArray(value)) {
+			for (const item of value) {
+				visit(item);
+			}
+			return;
+		}
+
+		if (!isRecord(value)) {
+			return;
+		}
+
+		if (value.type === 'column_ref') {
+			const name = columnName(value.column);
+
+			// SET password = 'x' asigna. El valor de la derecha sí se recorre.
+			if (name === '*' && !isRecord(value.value)) {
+				star = true;
+			} else if (name !== null && name !== '*' && !isRecord(value.value)) {
+				const configured = excluded.get(name.toLowerCase());
+
+				if (configured !== undefined && !seen.has(configured.toLowerCase())) {
+					seen.add(configured.toLowerCase());
+					names.push(configured);
+				}
+			}
+
+			if (isRecord(value.value)) {
+				visit(value.value);
+			}
+
+			return;
+		}
+
+		for (const child of Object.values(value)) {
+			visit(child);
+		}
+	};
+
+	for (const node of nodes) {
+		visit(node);
+	}
+
+	return { names, star };
+};
+
+/** Una columna, varias, y SELECT * cuando la lista de excluidas no está vacía. */
+const excludedColumnsMessage = (names: string[], star: boolean): string => {
+	const quoted = names.map((name) => `"${name}"`);
+	const list =
+		quoted.length <= 1
+			? (quoted[0] ?? '')
+			: quoted.length === 2
+				? `${quoted[0]} and ${quoted[1]}`
+				: `${quoted.slice(0, -1).join(', ')}, and ${quoted[quoted.length - 1]}`;
+	const columns =
+		names.length === 0
+			? ''
+			: names.length === 1
+				? `The query tries to read excluded column ${list}.`
+				: `The query tries to read excluded columns ${list}.`;
+	const starText = star ? 'The query tries to read excluded columns with SELECT *.' : '';
+
+	return [columns, starText].filter((part) => part.length > 0).join(' ');
 };

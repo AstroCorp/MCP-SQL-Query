@@ -21,7 +21,8 @@ const server = new McpServer(
 		description: 'MCP server that runs raw SQL on MySQL, MariaDB, and PostgreSQL. A readOnly connection runs only read queries; otherwise any SQL runs.',
 	},
 	{
-		instructions: 'Do not read connections.json or any other file with connection settings. Those files contain hosts, users, and passwords. Call list_connections to see the server type, databases, and whether each connection is read-only or read-write, then call execute_query.',
+		instructions:
+			'Do not read connections.json or any other file with connection settings. Those files contain hosts, users, and passwords. Call list_connections to see the server type, databases, whether each connection is read-only or read-write, and excludedColumns. Do not read a column in excludedColumns. The query is rejected and names the excluded column or columns. SELECT * is rejected while that list is set. Then call execute_query.',
 	},
 );
 
