@@ -17,7 +17,7 @@ const configPath = path.join(projectRoot, 'connections.json');
 const server = new McpServer(
 	{
 		name: 'MCP-SQL-Query',
-		version: '1.0.0',
+		version: '1.1.0',
 		description: 'MCP server that runs raw SQL on MySQL, MariaDB, and PostgreSQL. A readOnly connection runs only read queries; otherwise any SQL runs.',
 	},
 	{
