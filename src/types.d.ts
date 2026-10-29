@@ -18,7 +18,7 @@ export interface ConnectionConfig {
 /** Configuración del servidor: timeout global, columnas excluidas y conexiones. */
 export interface AppConfig {
 	maxTimeoutMs: number;
-	/** Nombres de columna que no pueden aparecer en el resultado. La comparación no distingue mayúsculas. */
+	/** Columnas que una conexión de solo lectura no puede consultar. La comparación no distingue mayúsculas. */
 	excludedColumns: string[];
 	connections: ConnectionConfig[];
 }

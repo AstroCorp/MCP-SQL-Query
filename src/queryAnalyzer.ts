@@ -323,7 +323,7 @@ const parseStatements = (sql: string, database: string): AstNode[] => {
 	}
 };
 
-/** read solo si cada sentencia del lote es de lectura. excludedColumns se mira en el mismo parseo. */
+/** read solo si cada sentencia del lote es de lectura. excludedColumns solo se mira en una lectura. */
 export const classifyQuery = (
 	sql: string,
 	serverType: SqlServerType,
@@ -336,7 +336,10 @@ export const classifyQuery = (
 		throw new SqlClassificationError('SQL query is empty');
 	}
 
-	if (excludedColumns.length > 0) {
+	// Una sola escritura bloquea el lote y no se contrasta con excludedColumns.
+	const access: SqlAccess = nodes.every(isReadStatement) ? 'read' : 'write';
+
+	if (access === 'read' && excludedColumns.length > 0) {
 		const found = referencedExcludedColumns(nodes, excludedColumns);
 
 		if (found.names.length > 0 || found.star) {
@@ -344,8 +347,7 @@ export const classifyQuery = (
 		}
 	}
 
-	// Una sola escritura bloquea el lote. En readOnly no se abre la base.
-	return nodes.every(isReadStatement) ? 'read' : 'write';
+	return access;
 };
 
 /** Nombre de columna tal como lo deja el parser. '*' es SELECT *, no el asterisco de COUNT(*). */

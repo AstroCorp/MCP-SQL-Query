@@ -87,23 +87,22 @@ describe('executeQuery before opening a connection', () => {
 		await expect(executeQuery(readOnly, 'NOT SQL', 'mysql', 'app')).rejects.toThrow(/SQL could not be parsed/);
 	});
 
-	it('rejects an excluded column and SELECT * before opening the database', async () => {
-		const writable: AppConfig = {
+	it('rejects an excluded column and SELECT * on a read-only connection before opening the database', async () => {
+		const readOnly: AppConfig = {
 			...config,
 			excludedColumns: ['email', 'password'],
-			connections: config.connections.filter((connection) => !connection.readOnly),
+			connections: config.connections.filter((connection) => connection.readOnly),
 		};
 
-		await expect(executeQuery(writable, 'SELECT email, password FROM accounts', 'mysql', 'app')).rejects.toThrow(
+		await expect(executeQuery(readOnly, 'SELECT email, password FROM accounts', 'mysql', 'app')).rejects.toThrow(
 			'The query tries to read excluded columns "email" and "password".',
 		);
-		await expect(executeQuery(writable, 'SELECT * FROM accounts', 'mysql', 'app')).rejects.toThrow(
+		await expect(executeQuery(readOnly, 'SELECT * FROM accounts', 'mysql', 'app')).rejects.toThrow(
 			'The query tries to read excluded columns with SELECT *.',
 		);
-		await expect(executeQuery(writable, 'NOT SQL', 'mysql', 'app')).rejects.toThrow(/SQL could not be parsed/);
 	});
 
-	it('reports an excluded column before the read-only error', async () => {
+	it('rejects a write on a read-only connection even when it mentions an excluded column', async () => {
 		const readOnly: AppConfig = {
 			...config,
 			excludedColumns: ['email'],
@@ -111,7 +110,7 @@ describe('executeQuery before opening a connection', () => {
 		};
 
 		await expect(executeQuery(readOnly, "DELETE FROM accounts WHERE email = 'a'", 'mysql', 'app')).rejects.toThrow(
-			'The query tries to read excluded column "email".',
+			'This connection is read-only. Only SELECT, DESCRIBE, and EXPLAIN of a read statement are allowed.',
 		);
 	});
 

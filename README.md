@@ -49,7 +49,7 @@ Copy `connections.example.json` to `connections.json` in the project root. The s
 
 `serverType` is `mysql`, `mariadb`, or `postgres`. `ip` is an IPv4 address, an IPv6 address, or a hostname.
 
-`excludedColumns` names columns the query must not read, such as `password` or `email`. The same check that classifies a query as read or write rejects the statement if it refers to one of them, in the select list, a `WHERE` clause, or anywhere else. The error names the column, or the columns. `SELECT *` and `table.*` are rejected too. `COUNT(*)` does not count as reading those columns. Omit the field, or use `[]`, to allow every column.
+`excludedColumns` names columns a read-only connection must not read, such as `password` or `email`. A read that refers to one of them is rejected, in the select list, a `WHERE` clause, or anywhere else. The error names the column, or the columns. `SELECT *` and `table.*` are rejected too. `COUNT(*)` does not count. A write is not checked against the list. A read-write connection ignores it. Omit the field, or use `[]`, to allow every column.
 
 > [!CAUTION]
 > `readOnly` is enforced by this server. To be certain a connection can only read, limit that database user to read privileges (`SELECT`, and anything else it needs that does not write). A user that can write can still write if `readOnly` is off or mis-set.
@@ -72,7 +72,7 @@ Cursor (or another MCP client) starts the compiled server:
 | Tool | Arguments | Purpose |
 |------|-----------|---------|
 | `list_connections` | — | `excludedColumns`, then each connection's server type, databases, and whether it is read-only or read-write. No hosts, users, or passwords |
-| `execute_query` | `sql`, `serverType`, `database` | Run raw SQL. `readOnly` decides whether a write is allowed. A reference to `excludedColumns` is rejected |
+| `execute_query` | `sql`, `serverType`, `database` | Run raw SQL. `readOnly` decides whether a write is allowed. On a read-only connection, a read that refers to `excludedColumns` is rejected |
 
 The result is a JSON text block. A rejected query comes back as an MCP tool error.
 
@@ -141,7 +141,7 @@ Copia `connections.example.json` a `connections.json` en la raíz del proyecto. 
 
 `serverType` es `mysql`, `mariadb` o `postgres`. `ip` es una IPv4, una IPv6 o un hostname.
 
-`excludedColumns` nombra columnas que la consulta no debe leer, como `password` o `email`. La misma validación que distingue lectura y escritura rechaza la sentencia si se refiere a una de ellas, en el `SELECT`, en un `WHERE` o en cualquier otro sitio. El error nombra la columna, o las columnas. `SELECT *` y `tabla.*` también se rechazan. `COUNT(*)` no cuenta como leer esas columnas. Omitir el campo, o poner `[]`, permite todas.
+`excludedColumns` nombra columnas que una conexión de solo lectura no debe leer, como `password` o `email`. Una lectura que se refiera a una de ellas se rechaza, en el `SELECT`, en un `WHERE` o en cualquier otro sitio. El error nombra la columna, o las columnas. `SELECT *` y `tabla.*` también se rechazan. `COUNT(*)` no cuenta. Una escritura no se comprueba contra la lista. Una conexión de lectura y escritura la ignora. Omitir el campo, o poner `[]`, permite todas.
 
 > [!CAUTION]
 > `readOnly` lo aplica este servidor. Para estar seguro de que una conexión solo lee, limita ese usuario de la base a permisos de lectura (`SELECT` y lo que necesite que no escriba). Un usuario que pueda escribir seguirá pudiendo escribir si `readOnly` está desactivado o mal puesto.
@@ -164,7 +164,7 @@ Cursor (u otro cliente MCP) arranca el servidor compilado:
 | Herramienta | Argumentos | Uso |
 |-------------|------------|-----|
 | `list_connections` | — | `excludedColumns`, y de cada conexión el motor, las bases y si es de solo lectura o de lectura y escritura. Sin hosts, usuarios ni contraseñas |
-| `execute_query` | `sql`, `serverType`, `database` | Ejecuta SQL. `readOnly` decide si se admite una escritura. Referirse a `excludedColumns` se rechaza |
+| `execute_query` | `sql`, `serverType`, `database` | Ejecuta SQL. `readOnly` decide si se admite una escritura. En una conexión de solo lectura, una lectura que se refiera a `excludedColumns` se rechaza |
 
 El resultado es un bloque de texto JSON. Una consulta rechazada vuelve como error de la herramienta.
 
