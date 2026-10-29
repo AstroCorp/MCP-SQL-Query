@@ -36,7 +36,7 @@ export const registerExecuteQueryTool = (server: McpServer, config: AppConfig): 
 		'execute_query',
 		{
 			title: 'Execute SQL',
-			description: 'Execute a raw SQL query on a configured connection. Whether it runs depends on that connection\'s readOnly permission. When readOnly is true, only SELECT, DESCRIBE, and EXPLAIN of a read statement are executed; write queries and SQL that cannot be classified are rejected. When readOnly is false, any query is executed. The same classification rejects a query that reads a column listed in excludedColumns and names that column. SELECT * is rejected while that list is set.',
+			description: 'Execute a raw SQL query on a configured connection. Whether it runs depends on that connection\'s readOnly permission. When readOnly is true, only SELECT, DESCRIBE, and EXPLAIN of a read statement are executed; write queries and SQL that cannot be classified are rejected. When readOnly is false, any query is executed and excludedColumns is ignored. On a read-only connection, a read that uses a column listed in excludedColumns is rejected and the error names that column. SELECT * is rejected while that list is set. A write is not checked against that list.',
 			inputSchema: {
 				sql: z.string().trim().min(1).describe('Raw SQL query.'),
 				serverType: z.enum(SQL_SERVER_TYPES).describe('Connection engine: mysql, mariadb, or postgres.'),

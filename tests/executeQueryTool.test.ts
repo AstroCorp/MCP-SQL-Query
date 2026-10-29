@@ -108,7 +108,7 @@ describe('execute_query tool', () => {
 		expect(textOf(result)).toContain('No mysql connection includes database "app"');
 	});
 
-	it('reports an excluded column before the read-only error', async () => {
+	it('checks excluded columns only on a read of a read-only connection', async () => {
 		const client = await connect({
 			maxTimeoutMs: 15000,
 			excludedColumns: ['email'],
@@ -124,18 +124,17 @@ describe('execute_query tool', () => {
 				},
 			],
 		});
-		const excluded = await client.callTool({
+		const read = await client.callTool({
 			name: 'execute_query',
-			arguments: { sql: "DELETE FROM accounts WHERE email = 'a'", serverType: 'mysql', database: 'app' },
+			arguments: { sql: 'SELECT email FROM accounts', serverType: 'mysql', database: 'app' },
 		});
 		const write = await client.callTool({
 			name: 'execute_query',
-			arguments: { sql: 'DELETE FROM accounts WHERE id = 1', serverType: 'mysql', database: 'app' },
+			arguments: { sql: "DELETE FROM accounts WHERE email = 'a'", serverType: 'mysql', database: 'app' },
 		});
 
-		expect(excluded.isError).toBe(true);
-		expect(textOf(excluded)).toContain('The query tries to read excluded column "email".');
-		expect(textOf(excluded)).not.toContain('read-only');
+		expect(read.isError).toBe(true);
+		expect(textOf(read)).toContain('The query tries to read excluded column "email".');
 		expect(write.isError).toBe(true);
 		expect(textOf(write)).toContain('This connection is read-only.');
 		expect(textOf(write)).not.toContain('excluded column');

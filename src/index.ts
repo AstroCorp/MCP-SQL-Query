@@ -17,12 +17,12 @@ const configPath = path.join(projectRoot, 'connections.json');
 const server = new McpServer(
 	{
 		name: 'MCP-SQL-Query',
-		version: '1.1.0',
+		version: '1.1.1',
 		description: 'MCP server that runs raw SQL on MySQL, MariaDB, and PostgreSQL. A readOnly connection runs only read queries; otherwise any SQL runs.',
 	},
 	{
 		instructions:
-			'Do not read connections.json or any other file with connection settings. Those files contain hosts, users, and passwords. Call list_connections to see the server type, databases, whether each connection is read-only or read-write, and excludedColumns. Do not read a column in excludedColumns. The query is rejected and names the excluded column or columns. SELECT * is rejected while that list is set. Then call execute_query.',
+			'Do not read connections.json or any other file with connection settings. Those files contain hosts, users, and passwords. Call list_connections to see the server type, databases, whether each connection is read-only or read-write, and excludedColumns. On a read-only connection, do not read a column in excludedColumns. A read is rejected and names the excluded column or columns. SELECT * is rejected while that list is set. A read-write connection ignores that list. Then call execute_query.',
 	},
 );
 

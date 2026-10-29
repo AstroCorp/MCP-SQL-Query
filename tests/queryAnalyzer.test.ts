@@ -228,12 +228,8 @@ describe('classifyQuery excluded columns', () => {
 		);
 	});
 
-	it.each(['postgres', 'mariadb'] as const)('finds an excluded column in RETURNING on %s', (serverType) => {
-		rejected(
-			serverType,
-			'INSERT INTO users (id) VALUES (1) RETURNING email',
-			'The query tries to read excluded column "email".',
-		);
+	it.each(['postgres', 'mariadb'] as const)('classifies RETURNING as a write even when it mentions an excluded column on %s', (serverType) => {
+		expect(classifyQuery('INSERT INTO users (id) VALUES (1) RETURNING email', serverType, excluded)).toBe('write');
 	});
 
 	it.each(SQL_SERVER_TYPES)('names three excluded columns and uses the configured spelling on %s', (serverType) => {
@@ -262,23 +258,15 @@ describe('classifyQuery excluded columns', () => {
 		expect(classifyQuery('EXPLAIN SELECT id FROM users', serverType, excluded)).toBe('read');
 	});
 
-	it.each(SQL_SERVER_TYPES)('reports the excluded column of a write instead of classifying it on %s', (serverType) => {
-		rejected(
-			serverType,
-			"DELETE FROM users WHERE email = 'a'",
-			'The query tries to read excluded column "email".',
-		);
-		rejected(
-			serverType,
-			"UPDATE users SET name = email WHERE id = 1",
-			'The query tries to read excluded column "email".',
-		);
+	it.each(SQL_SERVER_TYPES)('does not check excluded columns on a write on %s', (serverType) => {
+		expect(classifyQuery("DELETE FROM users WHERE email = 'a'", serverType, excluded)).toBe('write');
+		expect(classifyQuery("UPDATE users SET name = email WHERE id = 1", serverType, excluded)).toBe('write');
 		expect(classifyQuery('DELETE FROM users WHERE id = 1', serverType, excluded)).toBe('write');
 		expect(classifyQuery("UPDATE users SET password = 'secret' WHERE id = 1", serverType, excluded)).toBe('write');
 	});
 
-	it.each(SQL_SERVER_TYPES)('finds an excluded column in a later statement of a batch on %s', (serverType) => {
+	it.each(SQL_SERVER_TYPES)('finds an excluded column in a later read and skips it when the batch writes on %s', (serverType) => {
 		rejected(serverType, 'SELECT id FROM users; SELECT email FROM users', 'The query tries to read excluded column "email".');
-		expect(classifyQuery('SELECT id FROM users; DELETE FROM users WHERE id = 1', serverType, excluded)).toBe('write');
+		expect(classifyQuery('SELECT email FROM users; DELETE FROM users WHERE id = 1', serverType, excluded)).toBe('write');
 	});
 });
