@@ -4,7 +4,7 @@
   "description": "MCP server that runs raw SQL on MySQL, MariaDB, and PostgreSQL. A readOnly connection runs only read queries; otherwise any SQL runs.",
   "type": "module",
   "engines": {
-    "node": ">=24.22.1"
+    "node": ">=26.13.0"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -36,7 +36,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "tsc-alias": "^1.9.9",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

@@ -12,7 +12,7 @@ MCP SQL Query is a [Model Context Protocol](https://modelcontextprotocol.io) ser
 
 ### Requirements
 
-- **Node.js 24.22.1+**
+- **Node.js 26.13.0+**
 - **pnpm**
 - A MySQL, MariaDB, or PostgreSQL user
 
@@ -104,7 +104,7 @@ MCP SQL Query es un servidor [Model Context Protocol](https://modelcontextprotoc
 
 ### Requisitos
 
-- **Node.js 24.22.1+**
+- **Node.js 26.13.0+**
 - **pnpm**
 - Un usuario de MySQL, MariaDB o PostgreSQL
 
